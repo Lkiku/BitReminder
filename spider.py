@@ -5,7 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import requests
 import shutil
@@ -21,6 +21,9 @@ if os.path.exists('/tmp/chrome-data'):
 
 
 url = "https://taostats.io/subnets/59/chart"
+
+last_alert_time = None
+ALERT_INTERVAL = timedelta(minutes=30)
 
 
 UserAgents = [
@@ -66,6 +69,10 @@ chrome_options.add_argument(f'user-agent={UserAgents[0]}')
 
 driver = webdriver.Chrome(options=chrome_options)
 
+
+last_alert_time = None
+ALERT_INTERVAL = timedelta(minutes=30)
+
 try:
     while True:
         try:
@@ -84,10 +91,20 @@ try:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             print(f"时间: {current_time} | 价格: {price_value}")
-            if price_value >= 10:
-                response = requests.get(f'替换你们的barkapi/{price_value}/重要警告?level=critical&volume=5') #铃声提醒，忽略手机静音
-            if price_value >= 7:     #设置提醒价格
-                response = requests.get(f'替换成你们的barkapi//{price_value}') #普通文字提醒
+
+
+            current_datetime = datetime.now()
+            should_alert = False
+            if last_alert_time is None or (current_datetime - last_alert_time) >= ALERT_INTERVAL:
+                should_alert = True
+
+            if should_alert:
+                if price_value >= 10:
+                    response = requests.get(f'替换你们的barkapi/{price_value}/重要警告?level=critical&volume=5') #铃声提醒，忽略手机静音
+                    last_alert_time = current_datetime
+                elif price_value >= 7:     #设置提醒价格
+                    response = requests.get(f'替换成你们的barkapi//{price_value}') #普通文字提醒
+                    last_alert_time = current_datetime
 
         except Exception as e:
             print(f"发生错误: {e}")
