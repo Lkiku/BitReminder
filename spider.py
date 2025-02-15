@@ -84,15 +84,13 @@ try:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             print(f"时间: {current_time} | 价格: {price_value}")
+            if price_value >= 10:
+                response = requests.get(f'替换你们的barkapi/{price_value}/重要警告?level=critical&volume=5') #铃声提醒，忽略手机静音
             if price_value >= 7:     #设置提醒价格
                 response = requests.get(f'替换成你们的barkapi//{price_value}') #普通文字提醒
-            if price_value >= 1:
-                response = requests.get(f'替换你们的barkapi/{price_value}/重要警告?level=critical&volume=5') #铃声提醒，忽略手机静音
+
         except Exception as e:
             print(f"发生错误: {e}")
-
-            time.sleep(300)
-            continue
             
         time.sleep(300) 
         
