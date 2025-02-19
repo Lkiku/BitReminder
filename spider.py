@@ -11,6 +11,7 @@ import requests
 import shutil
 import os
 
+BARK_KEY=""
 
 if os.path.exists('/tmp/chrome-data'):
     try:
@@ -21,9 +22,6 @@ if os.path.exists('/tmp/chrome-data'):
 
 
 url = "https://taostats.io/subnets/59/chart"
-
-last_alert_time = None
-ALERT_INTERVAL = timedelta(minutes=30)
 
 
 UserAgents = [
@@ -71,8 +69,9 @@ driver = webdriver.Chrome(options=chrome_options)
 
 
 last_alert_time = None
-ALERT_INTERVAL = timedelta(minutes=30)
-
+low_last_alert_time = None
+ALERT_INTERVAL = timedelta(minutes=5)
+LOW_ALERT_INTERVAL = timedelta(minutes=20)
 try:
     while True:
         try:
@@ -86,30 +85,31 @@ try:
             price_element = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="root"]/div[2]/div[1]/div[3]/div[1]/div[2]/p'))
             )
+
             price_text = price_element.text
+            
             price_value = float(re.findall(r'[\d.]+', price_text)[0])
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-            print(f"时间: {current_time} | 价格: {price_value}")
+
+            print(f"时间: {current_time} | 帧率: {price_value}")
 
 
             current_datetime = datetime.now()
-            should_alert = False
-            if last_alert_time is None or (current_datetime - last_alert_time) >= ALERT_INTERVAL:
-                should_alert = True
+            if price_value >= 14.8:
+            	if last_alert_time is None or (current_datetime - last_alert_time) >= ALERT_INTERVAL:
+                    response = requests.get(f'https://api.day.app/{BARK_KEY}/重要/{price_value}/重要警告?level=critical&volume=5') #铃声提醒，忽略手机静音
+                    last_alert_time = current_datetime
 
-            if should_alert:
-                if price_value >= 10:
-                    response = requests.get(f'替换你们的barkapi/{price_value}/重要警告?level=critical&volume=5') #铃声提醒，忽略手机静音
-                    last_alert_time = current_datetime
-                elif price_value >= 7:     #设置提醒价格
-                    response = requests.get(f'替换成你们的barkapi//{price_value}') #普通文字提醒
-                    last_alert_time = current_datetime
+            elif price_value >= 12.4:     #设置提醒价格
+            	if low_last_alert_time is None or (current_datetime - low_last_alert_time) >= LOW_ALERT_INTERVAL:
+                    response = requests.get(f'https://api.day.app/{BARK_KEY}/重要/{price_value}') #普通文字提醒
+                    low_last_alert_time = current_datetime
 
         except Exception as e:
             print(f"发生错误: {e}")
             
-        time.sleep(300) 
+        time.sleep(30) 
         
 except KeyboardInterrupt:
     print("程序正在退出...")
